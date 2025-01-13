@@ -1,0 +1,8 @@
+[package]
+name = "const_regex"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+const_regex_util = {path = "const_regex_util"}
+proc_const_regex = {path = "proc_const_regex"}
