@@ -2,6 +2,8 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, parse_str, Lit};
 
+mod regex;
+
 #[proc_macro]
 pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input TokenStream into a Rust syntax element
