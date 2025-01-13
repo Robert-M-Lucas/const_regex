@@ -13,3 +13,5 @@ quote = "1.0.38"
 ascii = "1.1.0"
 nom = "7.1.3"
 itertools = "0.14.0"
+either = "1.13.0"
+const_regex_util = { path="../const_regex_util" }

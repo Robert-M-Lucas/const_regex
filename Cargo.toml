@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 const_regex_util = {path = "const_regex_util"}
 proc_const_regex = {path = "proc_const_regex"}
+
+nom = "7.1.3"
+either = "1.13.0"
+itertools = "0.14.0"

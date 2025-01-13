@@ -1,8 +1,10 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, parse_str, Lit};
+use crate::regex::to_regex;
 
 mod regex;
+
 
 #[proc_macro]
 pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -15,6 +17,8 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     } else {
         panic!("Expected a string literal as input.");
     };
+
+    let r = to_regex(&extracted_string);
 
     let mut fs = extracted_string.chars().fold((0, Vec::new()), |(i, mut v), ac| {
         v.push(GenFunc {
