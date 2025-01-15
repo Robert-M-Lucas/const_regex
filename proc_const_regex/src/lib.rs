@@ -1,9 +1,7 @@
+use const_regex_regex_transformer::{to_regex, ChainedMatchable, InvertibleMatchable, Matchable};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, parse_str, Lit};
-use crate::regex::to_regex;
-
-mod regex;
 
 
 #[proc_macro]
@@ -20,39 +18,53 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let r = to_regex(&extracted_string);
 
-    let mut fs = extracted_string.chars().fold((0, Vec::new()), |(i, mut v), ac| {
-        v.push(GenFunc {
-            id: i,
-            expecting: Some((ac, i + 1)),
-        });
-        (i + 1, v)
-    }).1;
-
-    fs.push(GenFunc {
-        id: fs.len(),
-        expecting: None
-    });
-
-    let fnl = Final {
-        functions: Functions {
-            functions: fs
-        }
-    };
+    let fnl = convert_regex(r);
 
     let x = quote! { #fnl };
 
     x.into()
 }
 
+fn convert_regex(regex: ChainedMatchable) -> Final {
+    let ts = recurse_handle_chain(&regex);
+
+    Final { function_contents: ts }
+}
+
+fn invertible_matchable(m: &InvertibleMatchable) -> TokenStream {
+    todo!()
+}
+
+fn union_matchable(u: &[Matchable]) -> TokenStream {
+    todo!()
+}
+
+fn matchable(m: Matchable) -> TokenStream {
+    todo!()
+}
+
+fn recurse_handle_chain(chain: &ChainedMatchable) -> TokenStream {
+    let (m, r, n) = (chain.matchables(), chain.repetition(), chain.next());
+
+    let condition = invertible_matchable(m);
+
+    let with_context = quote! {
+        let (next, input) = input.get_advance();
+        let pass = { #condition };
+    };
+
+    todo!()
+}
+
 struct Final {
-    functions: Functions
+    function_contents: TokenStream
 }
 
 impl ToTokens for Final {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let base: Ident = parse_str("_0").unwrap();
 
-        let functions_ts = self.functions.to_token_stream();
+        let functions_ts = self.function_contents.to_token_stream();
 
         tokens.extend(quote! {
                 {
@@ -67,49 +79,5 @@ impl ToTokens for Final {
                 }
         });
 
-    }
-}
-
-struct Functions {
-    functions: Vec<GenFunc>
-}
-
-impl ToTokens for Functions {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        for f in &self.functions {
-            f.to_tokens(tokens);
-        }
-    }
-}
-
-struct GenFunc {
-    id: usize,
-    expecting: Option<(char, usize)>,
-}
-
-impl ToTokens for GenFunc {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let function_name = format!("_{}", self.id);
-        let function_ident: Ident = parse_str(&function_name).unwrap();
-
-        tokens.extend(quote! {
-            const fn #function_ident(mut remaining: const_regex_util::CharSlice) -> bool
-        });
-
-        if let Some((c, next)) = self.expecting {
-            let next_name = format!("_{}", next);
-            let next_ident: Ident = parse_str(&next_name).unwrap();
-            tokens.extend(quote! {
-                {
-                    if remaining.is_empty() { return false; }
-                    let ac = remaining.first();
-                    let bc = const_regex_util::extend_char(#c);
-                    if ac[0] != bc[0] || ac[1] != bc[1] || ac[2] != bc[2] || ac[3] != bc[3] { false } else { Self::#next_ident(remaining.new_advance()) }
-                }
-            })
-        }
-        else {
-            tokens.extend(quote! { { remaining.is_empty() } });
-        }
     }
 }
