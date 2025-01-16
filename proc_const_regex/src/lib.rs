@@ -1,4 +1,5 @@
-use const_regex_regex_transformer::{to_regex, ChainedMatchable, InvertibleMatchable, Matchable};
+use const_regex_regex_transformer::{to_regex};
+use const_regex_regex_transformer::regex::{ChainedMatchable, InvertibleMatchable, Matchable};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, parse_str, Lit};

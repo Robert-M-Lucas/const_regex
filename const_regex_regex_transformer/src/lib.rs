@@ -2,7 +2,7 @@ use crate::automata::{to_dfa, to_nfa, DFA};
 use crate::regex::{parse_regex, ChainedMatchable};
 
 mod automata;
-mod regex;
+pub mod regex;
 
 
 

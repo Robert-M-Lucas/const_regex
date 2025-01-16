@@ -19,7 +19,7 @@ pub struct ChainedMatchable {
 
 #[derive(Debug)]
 pub enum Repetition {
-    None,
+    One,
     Any,
     AtLeast(u64),
     LessThanEq(u64),
@@ -235,7 +235,7 @@ pub fn parse_regex(regex: &str, bracket_start: bool) -> NResult<ChainedMatchable
             Repetition::AtLeast(1)
         }
         else {
-            Repetition::None
+            Repetition::One
         };
 
         ors.push(ChainedMatchable {
@@ -266,7 +266,7 @@ pub fn parse_regex(regex: &str, bracket_start: bool) -> NResult<ChainedMatchable
                     }).collect_vec(),
                 }
             },
-            repetition: Repetition::None,
+            repetition: Repetition::One,
             next: None,
         }
     };
