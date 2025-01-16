@@ -6,10 +6,20 @@ version = 4
 name = "const_regex_regex_transformer"
 version = "0.1.0"
 dependencies = [
+ "const_regex_util",
  "derive-getters",
  "either",
  "itertools",
  "nom",
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "const_regex_util"
+version = "0.1.0"
+dependencies = [
+ "itertools",
 ]
 
 [[package]]

@@ -23,6 +23,8 @@ dependencies = [
  "either",
  "itertools",
  "nom",
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]

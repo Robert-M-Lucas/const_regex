@@ -4,16 +4,33 @@ use std::hash::Hash;
 use std::ptr::write;
 use const_regex_util::{char_to_utf8, next_char, utf8_to_char, CharSlice};
 use itertools::Itertools;
+use proc_macro2::{TokenStream, TokenTree};
+use quote::{quote, ToTokens, TokenStreamExt};
 use crate::automata::TransitionType::{Any, ExcludeRange, Range, Single};
 use crate::regex::{ChainedMatchable, Matchable, Repetition};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]
-enum TransitionType {
+pub enum TransitionType {
     Single(u32),
     Range(u32, u32),
     ExcludeRange(u32, u32),
     Any,
+}
+
+impl ToTokens for TransitionType {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.append_all([
+            "const_regex_regex_transformer", "::", "automata", "::", "TransitionType", "::"
+        ]);
+
+        match &self {
+            Single(c) => tokens.append_all::<TokenStream>(quote! {Single(#c)}.into()),
+            Range(a, b) => tokens.append_all::<TokenStream>(quote! {Range(#a, #b)}.into()),
+            ExcludeRange(a, b) => tokens.append_all::<TokenStream>(quote! {ExcludeRange(#a, #b)}.into()),
+            Any => tokens.append_all::<TokenStream>(quote! {Any}.into()),
+        };
+    }
 }
 
 impl Debug for TransitionType {
