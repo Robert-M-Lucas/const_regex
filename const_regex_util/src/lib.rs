@@ -39,6 +39,13 @@ pub const fn char_to_utf8(c: char) -> u32 {
 }
 
 #[inline(always)]
+pub fn utf8_to_char(c: u32) -> char {
+    let tmp = c.to_be_bytes();
+    let s = String::from_utf8_lossy(&tmp);
+    s.chars().next().unwrap()
+}
+
+#[inline(always)]
 pub const fn next_char(s: &str, pos: usize) -> (u32, usize) {
     let next = find_next_code_point(s, pos);
     let bs = s.as_bytes();

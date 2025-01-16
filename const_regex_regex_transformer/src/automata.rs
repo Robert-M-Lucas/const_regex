@@ -1,11 +1,14 @@
-use std::fmt::{Debug, Formatter};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt::{format, Debug, Formatter};
+use std::hash::Hash;
 use std::ptr::write;
-use const_regex_util::{char_to_utf8, next_char, CharSlice};
+use const_regex_util::{char_to_utf8, next_char, utf8_to_char, CharSlice};
+use itertools::Itertools;
 use crate::automata::TransitionType::{Any, ExcludeRange, Range, Single};
 use crate::regex::{ChainedMatchable, Matchable, Repetition};
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq)]
 enum TransitionType {
     Single(u32),
     Range(u32, u32),
@@ -13,8 +16,63 @@ enum TransitionType {
     Any,
 }
 
+impl Debug for TransitionType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = match &self {
+            Single(c) => { format!("Single[{:?}]", utf8_to_char(*c)) }
+            Range(a, b) => { format!("Range[{:?}-{:?}]", utf8_to_char(*a), utf8_to_char(*b)) }
+            ExcludeRange(a, b) => { format!("ExcludeRange[{:?}-{:?}]", utf8_to_char(*a), utf8_to_char(*b)) }
+            Any => { format!("Any") }
+        };
+
+        write!(f, "{s}")
+    }
+}
+
+#[derive(Default, Debug)]
+struct TransitionHolder {
+    inner: HashMap<TransitionType, HashSet<usize>>
+}
+
+impl TransitionHolder {
+    fn add_transition(&mut self, tt: TransitionType, destination: usize) {
+        if let Some(s) = self.inner.get_mut(&tt) {
+            s.insert(destination);
+        }
+        else {
+            self.inner.insert(tt, HashSet::from([destination]));
+        }
+    }
+
+    fn add_transitions(&mut self, tt: TransitionType, destinations: HashSet<usize>) {
+        if let Some(ss) = self.inner.get_mut(&tt) {
+            for s in destinations {
+                ss.insert(s);
+            }
+        }
+        else {
+            self.inner.insert(tt, destinations);
+        }
+    }
+}
+
+
+#[derive(Default)]
 pub struct DFA {
-    pub transitions: Vec<Vec<(TransitionType, usize)>>
+    pub transitions: Vec<(bool, Vec<(TransitionType, usize)>)>
+}
+
+impl Debug for DFA {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for (i, (success, transitions)) in self.transitions.iter().enumerate() {
+            writeln!(f, "{i}{}:", if *success { " [S]" } else { "" })?;
+            for (tt, dst) in transitions {
+                writeln!(f, "    {tt:?} -> {dst}")?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Default, Clone)]
@@ -173,8 +231,83 @@ fn matchable_nfa(matchable: &Matchable, transitions: &mut Vec<NFAState>) -> Vec<
     vec![success_pos]
 }
 
+pub fn gather_epsilon(nfa: &NFA, states: &mut HashSet<usize>, current: usize) {
+    debug_assert!(current <= nfa.states.len());
+    if current == nfa.states.len() {
+        return;
+    }
+    for (ts, ns) in &nfa.states[current].transitions {
+        if ts.is_none() {
+           states.insert(*ns);
+            gather_epsilon(nfa, states, *ns);
+        }
+    }
+}
+
+pub fn gather_transitions(self_states: &HashSet<usize>, base_state: usize, nfa: &NFA, current_pos: usize, transitions: &mut TransitionHolder) {
+    if current_pos != base_state && self_states.contains(&current_pos) {
+        return;
+    }
+    debug_assert!(current_pos <= nfa.states.len());
+    if current_pos == nfa.states.len() {
+        return;
+    }
+    for (tt, ns) in &nfa.states[current_pos].transitions {
+        if let Some(tt) = tt {
+            let mut epsilon_states = HashSet::new();
+            epsilon_states.insert(*ns);
+            gather_epsilon(nfa, &mut epsilon_states, *ns);
+            transitions.add_transitions(*tt, epsilon_states);
+        }
+        else {
+            gather_transitions(self_states, base_state, nfa, *ns, transitions);
+        }
+    }
+}
+
 pub fn to_dfa(nfa: NFA) -> DFA {
-    todo!()
+    let mut start_states = HashSet::new();
+    start_states.insert(0);
+    gather_epsilon(&nfa, &mut start_states, 0);
+
+    let mut done: Vec<HashSet<usize>> = Vec::new();
+    let mut states: Vec<(HashSet<usize>, TransitionHolder)> = Vec::new();
+
+    let mut open_set = VecDeque::new();
+    open_set.push_back(start_states);
+
+    while let Some(set) = open_set.pop_front() {
+        let mut th = TransitionHolder::default();
+        for s in set.iter() {
+            gather_transitions(&set, *s, &nfa, *s, &mut th);
+        }
+
+        done.push(set.clone());
+
+        for (_, other) in th.inner.iter() {
+            if !done.contains(other) && !open_set.contains(other) {
+                open_set.push_back(other.clone());
+            }
+        }
+
+        states.push((set, th));
+    }
+
+    let mut dfa = DFA::default();
+
+    for (ss, ts) in &states {
+        let success = ss.contains(&nfa.states.len());
+        let mut transitions = Vec::new();
+
+        for (tt, dst) in &ts.inner {
+            let idx = states.iter().find_position(|(ss, _)| dst == ss).unwrap().0;
+            transitions.push((*tt, idx));
+        }
+
+        dfa.transitions.push((success, transitions));
+    }
+
+    dfa
 }
 
 pub fn test_nfa(input: &NFA, s: &str) -> bool {
@@ -225,16 +358,21 @@ fn nfa_ant(nfa: &NFA, nfa_pos: usize, str_pos: usize, s: &str) -> bool {
 }
 
 const fn test(input: &str) -> bool {
+    const T1_SUCCESS: bool = true;
     const T1: [(TransitionType, usize); 2] = [(Single(char_to_utf8('a')), 0), (Range(char_to_utf8('d'), char_to_utf8('f')), 1)];
 
-    const TRANSITIONS: [&[(TransitionType, usize)]; 1] = [&T1];
+    const TRANSITIONS: [(bool, &[(TransitionType, usize)]); 1] = [(T1_SUCCESS, &T1)];
 
     let mut s = 0;
     loop {
         if s >= TRANSITIONS.len() {
             return true;
         }
-        let ts = &TRANSITIONS[s];
+        let (success_state, ts) = &TRANSITIONS[s];
+        if s == input.as_bytes().len() {
+            return *success_state;
+        }
+
         let (c, d) = next_char(input, s);
         s += d;
 
