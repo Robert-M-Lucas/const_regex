@@ -20,9 +20,7 @@ pub enum TransitionType {
 
 impl ToTokens for TransitionType {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.append_all([
-            "const_regex_regex_transformer", "::", "automata", "::", "TransitionType", "::"
-        ]);
+        tokens.append_all::<TokenStream>(quote! { const_regex_regex_transformer::automata::TransitionType:: }.into());
 
         match &self {
             Single(c) => tokens.append_all::<TokenStream>(quote! {Single(#c)}.into()),

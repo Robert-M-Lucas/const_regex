@@ -43,7 +43,7 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         transitions.append_all::<TokenStream>(quote! {
             const #success_ident: bool = #s;
-            const #ident: [(TransitionType, usize); #t_len] = [#ts_tokens];
+            const #ident: [(const_regex_regex_transformer::automata::TransitionType, usize); #t_len] = [#ts_tokens];
         }.into());
     }
 
@@ -58,7 +58,7 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let t_len = dfa.transitions.len();
     transitions.append_all::<TokenStream>(quote! {
-        const TRANSITIONS: [(bool, &[(TransitionType, usize)]); #t_len] = [#full_tokens];
+        const TRANSITIONS: [(bool, &[(const_regex_regex_transformer::automata::TransitionType, usize)]); #t_len] = [#full_tokens];
     }.into());
 
     let x = quote! {
@@ -66,11 +66,11 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             struct Regex;
 
             impl Regex {
-                pub const fn test(input: &str) -> bool {
+                pub const fn test(&self, input: &str) -> bool {
                     #transitions
 
                     let mut s = 0;
-                    loop {
+                    'outer: loop {
                         if s >= TRANSITIONS.len() {
                             return true;
                         }
@@ -79,7 +79,7 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                             return *success_state;
                         }
 
-                        let (c, d) = next_char(input, s);
+                        let (c, d) = const_regex_util::next_char(input, s);
                         s += d;
 
                         let mut i = 0;
@@ -88,15 +88,15 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                             let (t, ns) = &ts[i];
 
                             let r = match t {
-                                Single(a) => *a == c,
-                                Range(a, b) => *a <= c && c <= *b,
-                                ExcludeRange(a, b) => c < *a || *b > c,
-                                Any => true
+                                const_regex_regex_transformer::automata::TransitionType::Single(a) => *a == c,
+                                const_regex_regex_transformer::automata::TransitionType::Range(a, b) => *a <= c && c <= *b,
+                                const_regex_regex_transformer::automata::TransitionType::ExcludeRange(a, b) => c < *a || *b > c,
+                                const_regex_regex_transformer::automata::TransitionType::Any => true
                             };
 
                             if r {
                                 s = *ns;
-                                continue;
+                                continue 'outer;
                             }
 
                             i += 1;
