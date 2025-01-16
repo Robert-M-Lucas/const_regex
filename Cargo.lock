@@ -6,11 +6,6 @@ version = 4
 name = "const_regex"
 version = "0.1.0"
 dependencies = [
- "const_regex_regex_transformer",
- "const_regex_util",
- "either",
- "itertools",
- "nom",
  "proc_const_regex",
 ]
 
@@ -30,9 +25,6 @@ dependencies = [
 [[package]]
 name = "const_regex_util"
 version = "0.1.0"
-dependencies = [
- "itertools",
-]
 
 [[package]]
 name = "derive-getters"
@@ -96,6 +88,7 @@ name = "proc_const_regex"
 version = "0.1.0"
 dependencies = [
  "const_regex_regex_transformer",
+ "const_regex_util",
  "proc-macro2",
  "quote",
  "syn",

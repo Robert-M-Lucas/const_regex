@@ -10,4 +10,6 @@ proc-macro = true
 syn = { version = "2.0.91", features = ["full"]}
 proc-macro2 = { version = "1.0.92", features = ["proc-macro"] }
 quote = "1.0.38"
-const_regex_regex_transformer = { path = "../const_regex_regex_transformer" }
+
+const_regex_regex_transformer = {path = "../const_regex_regex_transformer"}
+const_regex_util = {path = "../const_regex_util"}
