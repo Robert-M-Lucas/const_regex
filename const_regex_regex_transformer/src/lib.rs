@@ -1,9 +1,8 @@
 use crate::automata::{to_dfa, to_nfa, DFA};
 use crate::regex::{parse_regex, ChainedMatchable};
 
-mod automata;
+pub mod automata;
 pub mod regex;
-
 
 
 pub fn to_regex(regex: &str) -> ChainedMatchable {

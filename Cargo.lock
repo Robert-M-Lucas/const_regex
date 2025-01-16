@@ -6,6 +6,7 @@ version = 4
 name = "const_regex"
 version = "0.1.0"
 dependencies = [
+ "const_regex_regex_transformer",
  "const_regex_util",
  "either",
  "itertools",

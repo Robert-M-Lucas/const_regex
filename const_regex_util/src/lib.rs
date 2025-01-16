@@ -44,10 +44,10 @@ pub const fn next_char(s: &str, pos: usize) -> (u32, usize) {
     let bs = s.as_bytes();
     let ret = u32::from_be_bytes(
         match next - pos {
-            1 => [bs[0], 0, 0, 0],
-            2 => [bs[0], bs[1], 0, 0],
-            3 => [bs[0], bs[1], bs[2], 0],
-            4 => [bs[0], bs[1], bs[2], bs[3]],
+            1 => [bs[pos], 0, 0, 0],
+            2 => [bs[pos], bs[pos + 1], 0, 0],
+            3 => [bs[pos], bs[pos + 1], bs[pos + 2], 0],
+            4 => [bs[pos], bs[pos + 1], bs[pos + 2], bs[pos + 3]],
             _ => unreachable!()
         }
     );
