@@ -159,7 +159,7 @@ pub fn parse_regex(regex: &str, bracket_start: bool) -> NResult<ChainedMatchable
 
         let base = match base_char {
             '\\' => {
-                rm = r;
+                // rm = r;
                 todo!()
             }
             '[' => {

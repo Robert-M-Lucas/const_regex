@@ -58,7 +58,7 @@ pub const fn next_char(s: &str, pos: usize) -> (u32, usize) {
             _ => unreachable!()
         }
     );
-    unsafe { (ret, next) }
+    (ret, next)
 }
 
 pub struct CharSlice<'a> {

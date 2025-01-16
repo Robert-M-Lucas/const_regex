@@ -1,13 +1,12 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::fmt::{format, Debug, Formatter};
-use std::hash::Hash;
-use std::ptr::write;
-use const_regex_util::{char_to_utf8, next_char, utf8_to_char, CharSlice};
-use itertools::Itertools;
-use proc_macro2::{TokenStream, TokenTree};
-use quote::{quote, ToTokens, TokenStreamExt};
 use crate::automata::TransitionType::{Any, ExcludeRange, Range, Single};
 use crate::regex::{ChainedMatchable, Matchable, Repetition};
+use const_regex_util::{char_to_utf8, next_char, utf8_to_char};
+use itertools::Itertools;
+use proc_macro2::TokenStream;
+use quote::{quote, ToTokens, TokenStreamExt};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt::{Debug, Formatter};
+use std::hash::Hash;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]
@@ -50,14 +49,14 @@ struct TransitionHolder {
 }
 
 impl TransitionHolder {
-    fn add_transition(&mut self, tt: TransitionType, destination: usize) {
-        if let Some(s) = self.inner.get_mut(&tt) {
-            s.insert(destination);
-        }
-        else {
-            self.inner.insert(tt, HashSet::from([destination]));
-        }
-    }
+    // fn add_transition(&mut self, tt: TransitionType, destination: usize) {
+    //     if let Some(s) = self.inner.get_mut(&tt) {
+    //         s.insert(destination);
+    //     }
+    //     else {
+    //         self.inner.insert(tt, HashSet::from([destination]));
+    //     }
+    // }
 
     fn add_transitions(&mut self, tt: TransitionType, destinations: HashSet<usize>) {
         if let Some(ss) = self.inner.get_mut(&tt) {
@@ -118,7 +117,7 @@ impl Debug for NFAState {
 }
 
 pub struct NFA {
-    pub states: Vec<NFAState>
+    states: Vec<NFAState>
 }
 
 impl Debug for NFA {
@@ -246,7 +245,7 @@ fn matchable_nfa(matchable: &Matchable, transitions: &mut Vec<NFAState>) -> Vec<
     vec![success_pos]
 }
 
-pub fn gather_epsilon(nfa: &NFA, states: &mut HashSet<usize>, current: usize) {
+fn gather_epsilon(nfa: &NFA, states: &mut HashSet<usize>, current: usize) {
     debug_assert!(current <= nfa.states.len());
     if current == nfa.states.len() {
         return;
@@ -259,7 +258,7 @@ pub fn gather_epsilon(nfa: &NFA, states: &mut HashSet<usize>, current: usize) {
     }
 }
 
-pub fn gather_transitions(self_states: &HashSet<usize>, base_state: usize, nfa: &NFA, current_pos: usize, transitions: &mut TransitionHolder) {
+fn gather_transitions(self_states: &HashSet<usize>, base_state: usize, nfa: &NFA, current_pos: usize, transitions: &mut TransitionHolder) {
     if current_pos != base_state && self_states.contains(&current_pos) {
         return;
     }
@@ -370,47 +369,4 @@ fn nfa_ant(nfa: &NFA, nfa_pos: usize, str_pos: usize, s: &str) -> bool {
         if r { return true }
     }
     false
-}
-
-const fn test(input: &str) -> bool {
-    const T1_SUCCESS: bool = true;
-    const T1: [(TransitionType, usize); 2] = [(Single(char_to_utf8('a')), 0), (Range(char_to_utf8('d'), char_to_utf8('f')), 1)];
-
-    const TRANSITIONS: [(bool, &[(TransitionType, usize)]); 1] = [(T1_SUCCESS, &T1)];
-
-    let mut s = 0;
-    loop {
-        if s >= TRANSITIONS.len() {
-            return true;
-        }
-        let (success_state, ts) = &TRANSITIONS[s];
-        if s == input.as_bytes().len() {
-            return *success_state;
-        }
-
-        let (c, d) = next_char(input, s);
-        s += d;
-
-        let mut i = 0;
-        let len = ts.len();
-        while i < len {
-            let (t, ns) = &ts[i];
-
-            let r = match t {
-                Single(a) => *a == c,
-                Range(a, b) => *a <= c && c <= *b,
-                ExcludeRange(a, b) => c < *a || *b > c,
-                Any => true
-            };
-
-            if r {
-                s = *ns;
-                continue;
-            }
-
-            i += 1;
-        }
-
-        return false
-    }
 }
