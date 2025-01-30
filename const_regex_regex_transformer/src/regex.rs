@@ -96,33 +96,39 @@ fn parse_match_group(regex: &str) -> NResult<InvertibleMatchable> {
         panic!()
     }
 
-    let mut ms = vec![
+    let mut ms = VecDeque::from([
         Matchable::Char(match chars.pop_front().unwrap() {
             Left(c) => {c}
             Right(_) => {'-'}
         })
-    ];
+    ]);
 
     while chars.len() > 1 {
-        if chars[1].is_right() {
-            let start = chars.pop_front().unwrap().unwrap_left();
+        println!("{:?}", chars);
+        if chars[0].is_right() {
+            println!("A");
+            let start = ms.pop_front().unwrap();
+            let start  = if let Matchable::Char(c) = start {c} else {panic!()};
+
             chars.pop_front().unwrap().unwrap_right();
             let end = chars.pop_front();
             if let Some(end) = end {
-                ms.push(Matchable::Range(start, end.unwrap_left()))
+                println!("B");
+                ms.push_back(Matchable::Range(start, end.unwrap_left()))
             }
             else {
-                ms.push(Matchable::Char(start));
-                ms.push(Matchable::Char('-')); // ended with -
+                ms.push_back(Matchable::Char(start));
+                ms.push_back(Matchable::Char('-')); // ended with -
             }
         }
         else {
-            ms.push(Matchable::Char(chars.pop_front().unwrap().unwrap_left()))
+            println!("C");
+            ms.push_back(Matchable::Char(chars.pop_front().unwrap().unwrap_left()))
         }
     }
 
     if !chars.is_empty() {
-        ms.push(Matchable::Char(match chars.pop_front().unwrap() {
+        ms.push_back(Matchable::Char(match chars.pop_front().unwrap() {
             Left(c) => {c}
             Right(_) => {'-'}
         }));
@@ -131,7 +137,7 @@ fn parse_match_group(regex: &str) -> NResult<InvertibleMatchable> {
     Ok((rm, InvertibleMatchable {
         inverted,
         matchable: UnionMatchables {
-            matchables: ms
+            matchables: ms.into_iter().collect_vec()
         },
     }))
 }
@@ -206,10 +212,10 @@ pub fn parse_regex(regex: &str, bracket_start: bool) -> NResult<ChainedMatchable
             Repetition::Any
         } else if let Ok((r, _)) = cchar::<_, Error<_>>('{')(rm) {
             rm = r;
-            let (r, min) = opt(parse_u64)(rm).unwrap();
+            let (r, min) = opt(parse_u64)(rm)?;
             rm = r;
-            rm = cchar::<_, Error<_>>(',')(rm).unwrap().0;
-            let (r, max) = opt(parse_u64)(rm).unwrap();
+            rm = cchar::<_, Error<_>>(',')(rm)?.0;
+            let (r, max) = opt(parse_u64)(rm)?;
             rm = r;
             let rep = if min.is_some() && max.is_some() {
                 Repetition::Range(min.unwrap(), max.unwrap())

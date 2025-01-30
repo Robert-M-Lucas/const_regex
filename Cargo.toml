@@ -7,3 +7,5 @@ edition = "2021"
 proc_const_regex = {path = "proc_const_regex"}
 const_regex_regex_transformer = {path = "const_regex_regex_transformer"}
 const_regex_util = {path = "const_regex_util"}
+simple_tables = "0.3.0"
+regex = { version = "1.11.1", features = [] }

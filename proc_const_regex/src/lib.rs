@@ -19,7 +19,12 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let r = to_regex(&extracted_string);
     let nfa = to_nfa(r);
+
+    println!("{:?}\n", nfa);
+
     let dfa = to_dfa(nfa);
+
+    println!("{:?}", dfa);
 
     let mut transitions = TokenStream::new();
 
@@ -68,40 +73,31 @@ pub fn regex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 pub const fn test(&self, input: &str) -> bool {
                     #transitions
 
-                    let mut s = 0;
-                    'outer: loop {
-                        if s >= TRANSITIONS.len() {
-                            return true;
+                    let mut state = 0;
+                let mut string_pos = 0;
+                'outer: loop {
+                    if state >= TRANSITIONS.len() { panic!("Invalid DFA state!"); }
+                    let (success_state, ts) = &TRANSITIONS[state];
+                    if string_pos == input.as_bytes().len() { return *success_state; }
+                    let (c, d) = const_regex_util::next_char(input, string_pos);
+                    string_pos = d;
+                    let mut i = 0;
+                    let len = ts.len();
+                    while i < len {
+                        let (t, ns) = &ts[i];
+                        let r = match t {
+                            const_regex_regex_transformer::automata::TransitionType::Single(a) => *a == c,
+                            const_regex_regex_transformer::automata::TransitionType::Range(a, b) => *a <= c && c <= *b,
+                            const_regex_regex_transformer::automata::TransitionType::ExcludeRange(a, b) => c < *a || *b > c,
+                            const_regex_regex_transformer::automata::TransitionType::Any => true
+                        };
+                        if r {
+                            state = *ns;
+                            continue 'outer;
                         }
-                        let (success_state, ts) = &TRANSITIONS[s];
-                        if s == input.as_bytes().len() {
-                            return *success_state;
-                        }
-
-                        let (c, d) = const_regex_util::next_char(input, s);
-                        s += d;
-
-                        let mut i = 0;
-                        let len = ts.len();
-                        while i < len {
-                            let (t, ns) = &ts[i];
-
-                            let r = match t {
-                                const_regex_regex_transformer::automata::TransitionType::Single(a) => *a == c,
-                                const_regex_regex_transformer::automata::TransitionType::Range(a, b) => *a <= c && c <= *b,
-                                const_regex_regex_transformer::automata::TransitionType::ExcludeRange(a, b) => c < *a || *b > c,
-                                const_regex_regex_transformer::automata::TransitionType::Any => true
-                            };
-
-                            if r {
-                                s = *ns;
-                                continue 'outer;
-                            }
-
-                            i += 1;
-                        }
-
-                        return false
+                        i += 1;
+                    }
+                    return false;
                     }
                 }
             }

@@ -3,7 +3,6 @@ fn ext() {
     let s = "€1𝄞123";
 
     panic!("{:X} {:X} {}", char_to_utf8(s.chars().next().unwrap()), next_char(s, 0).0, s.as_bytes().iter().map(|x| format!("{x:X}")).collect::<String>());
-
 }
 
 #[inline(always)]

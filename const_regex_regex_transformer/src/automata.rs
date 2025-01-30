@@ -68,6 +68,51 @@ impl TransitionHolder {
             self.inner.insert(tt, destinations);
         }
     }
+
+    fn collapse_transitions(self) -> TransitionHolder  {
+        let mut ts = self.inner;
+
+        let mut changed = true;
+        'outer: loop {
+
+            let mut keys = ts.keys().cloned().collect_vec();
+            for i in 0..keys.len() {
+                let k1 = &keys[i];
+
+                match &k1 {
+                    Single(_) => { continue; }
+                    Range(_, _) => {}
+                    ExcludeRange(_, _) => {}
+                    Any => {}
+                };
+
+                for j in 0..keys.len() {
+                    if j == i { continue; }
+
+                    let k2 = &keys[j];
+
+                    match &k1 {
+                        Single(_) => { unreachable!(); }
+                        Range(_, _) => {
+
+                        }
+                        ExcludeRange(_, _) => {
+
+                        }
+                        Any => {
+
+                        }
+                    }
+                }
+            }
+
+            break;
+        }
+
+        TransitionHolder {
+            inner: ts
+        }
+    }
 }
 
 
@@ -303,6 +348,8 @@ pub fn to_dfa(nfa: NFA) -> DFA {
                 open_set.push_back(other.clone());
             }
         }
+
+        let th = th.collapse_transitions();
 
         states.push((set, th));
     }
